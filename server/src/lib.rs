@@ -2,6 +2,7 @@ use std::io::Read;
 use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
 use std::str::FromStr;
 
+#[derive(Debug)]
 pub struct ServerConfig {
     pub address: SocketAddr,
     thread_count: u8,

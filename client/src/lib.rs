@@ -2,6 +2,7 @@ use std::io::Write;
 use std::net::{IpAddr, SocketAddr, TcpStream};
 use std::str::FromStr;
 
+#[derive(Debug)]
 pub struct ClientConfig {
     server_address: SocketAddr,
 }
