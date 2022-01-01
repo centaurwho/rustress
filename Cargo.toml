@@ -3,4 +3,6 @@ members = [
     "server",
     "client",
     "configparser",
+    "test_client",
+    "test_server",
 ]

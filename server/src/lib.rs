@@ -1,19 +1,27 @@
 use std::io::Read;
 use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
 use std::str::FromStr;
+use serde_derive::Deserialize;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct ServerConfig {
-    pub address: SocketAddr,
-    thread_count: u8,
+    pub ip: String,
+    pub port: u16,
+
+    #[serde(default = "default_thread_count")]
+    pub thread_count: u8,
+}
+
+fn default_thread_count() -> u8 {
+    1
 }
 
 impl ServerConfig {
-    pub fn new(ip: &str, port: u16, thread_count: u8) -> ServerConfig {
-        let ip_addr = IpAddr::from_str(ip).unwrap();
+    pub fn default() -> ServerConfig {
         ServerConfig {
-            address: SocketAddr::new(IpAddr::from(ip_addr), port),
-            thread_count,
+            ip: String::from("127.0.0.1"),
+            port: 8080,
+            thread_count: 1,
         }
     }
 }
@@ -22,13 +30,19 @@ pub struct Server {
     config: ServerConfig,
 }
 
+fn to_socket_addr(ip: &str, port: u16) -> SocketAddr {
+    let ip_addr = IpAddr::from_str(ip).unwrap();
+    SocketAddr::new(ip_addr, port)
+}
+
 impl Server {
     pub fn new(config: ServerConfig) -> Server {
         Server { config }
     }
 
     pub fn run(&self) -> std::io::Result<()> {
-        let listener = TcpListener::bind(self.config.address)?;
+        let socket_addr = to_socket_addr(&self.config.ip, self.config.port);
+        let listener = TcpListener::bind(socket_addr)?;
         for stream in listener.incoming() {
             self.handle_client(stream?);
         }
