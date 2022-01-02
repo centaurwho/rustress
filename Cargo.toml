@@ -5,4 +5,5 @@ members = [
     "configparser",
     "test_client",
     "test_server",
+    "threadpool",
 ]
