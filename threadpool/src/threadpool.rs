@@ -1,4 +1,5 @@
 use std::sync::{Arc, mpsc, Mutex};
+use std::time::Duration;
 
 use crate::Message;
 use crate::worker::Worker;
@@ -6,7 +7,6 @@ use crate::worker::Worker;
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: mpsc::Sender<Message>,
-
     // TODO: capacity, completed_task_count, keep_alive_time
 }
 
@@ -43,18 +43,10 @@ impl ThreadPoolFactory {
     }
 
     pub fn new_fixed_sized(thread_count: usize) -> ThreadPool {
-        assert!(thread_count > 0);
-
-        let (sender, receiver) = mpsc::channel();
-        let receiver = Arc::new(Mutex::new(receiver));
-        let workers = (0..thread_count)
-            .map(|id| Worker::new(id, Arc::clone(&receiver)))
-            .collect();
-
-        ThreadPool {
-            workers,
-            sender,
-        }
+        ThreadPoolBuilder::new()
+            .max_pool_size(thread_count)
+            .active_pool_size(thread_count)
+            .build()
     }
 
     pub fn new_cached() -> ThreadPool {
@@ -63,5 +55,64 @@ impl ThreadPoolFactory {
 
     pub fn new_scheduled() {
         todo!()
+    }
+}
+
+// TODO: Raw function pointer vs Boxed trait object vs type parameter
+type ThreadProducer = fn() -> std::thread::Thread;
+
+struct ThreadPoolBuilder {
+    max_pool_size: usize,
+    active_pool_size: usize,
+    keep_alive_time: Option<Duration>,
+    thread_fn: Option<ThreadProducer>,
+}
+
+impl ThreadPoolBuilder {
+    fn new() -> ThreadPoolBuilder {
+        ThreadPoolBuilder {
+            max_pool_size: 1,
+            active_pool_size: 0,
+            keep_alive_time: None,
+            thread_fn: None,
+        }
+    }
+
+    fn max_pool_size(mut self, n: usize) -> ThreadPoolBuilder {
+        assert!(n > 0);
+        assert!(n >= self.active_pool_size);
+        self.max_pool_size = n;
+        self
+    }
+
+    fn active_pool_size(mut self, n: usize) -> ThreadPoolBuilder {
+        assert!(n > 0);
+        assert!(n <= self.max_pool_size);
+        self.active_pool_size = n;
+        self
+    }
+
+    fn keep_alive_time(mut self, time: Duration) -> ThreadPoolBuilder {
+        self.keep_alive_time = Some(time);
+        self
+    }
+
+    fn thread_fn(mut self, thread_fn: ThreadProducer) -> ThreadPoolBuilder {
+        self.thread_fn = Some(thread_fn);
+        self
+    }
+
+    fn build(self) -> ThreadPool {
+        let (sender, receiver) = mpsc::channel();
+        let receiver = Arc::new(Mutex::new(receiver));
+
+        let workers = (0..self.active_pool_size)
+            .map(|id| Worker::new(id, Arc::clone(&receiver)))
+            .collect();
+
+        ThreadPool {
+            workers,
+            sender,
+        }
     }
 }
