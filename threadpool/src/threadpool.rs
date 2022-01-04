@@ -10,25 +10,6 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
-    fn new_single_threaded() -> ThreadPool {
-        ThreadPool::new(1)
-    }
-
-    pub fn new(thread_count: usize) -> ThreadPool {
-        assert!(thread_count > 0);
-
-        let (sender, receiver) = mpsc::channel();
-        let receiver = Arc::new(Mutex::new(receiver));
-        let workers = (0..thread_count)
-            .map(|id| Worker::new(id, Arc::clone(&receiver)))
-            .collect();
-
-        ThreadPool {
-            workers,
-            sender,
-        }
-    }
-
     pub fn execute<F>(&self, f: F)
         where F: FnOnce() + Send + 'static {
         let job = Message::NewJob(Box::new(f));
@@ -50,5 +31,36 @@ impl Drop for ThreadPool {
                 thread.join().unwrap();
             }
         }
+    }
+}
+
+pub struct ThreadPoolFactory;
+
+impl ThreadPoolFactory {
+    pub fn new_single_threaded() -> ThreadPool {
+        ThreadPoolFactory::new_fixed_sized(1)
+    }
+
+    pub fn new_fixed_sized(thread_count: usize) -> ThreadPool {
+        assert!(thread_count > 0);
+
+        let (sender, receiver) = mpsc::channel();
+        let receiver = Arc::new(Mutex::new(receiver));
+        let workers = (0..thread_count)
+            .map(|id| Worker::new(id, Arc::clone(&receiver)))
+            .collect();
+
+        ThreadPool {
+            workers,
+            sender,
+        }
+    }
+
+    pub fn new_cached() -> ThreadPool {
+        todo!()
+    }
+
+    pub fn new_scheduled() {
+        todo!()
     }
 }

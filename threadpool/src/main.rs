@@ -1,14 +1,13 @@
-use std::sync::{Arc, mpsc, Mutex};
-use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time::Duration;
-use crate::threadpool::ThreadPool;
+
+use crate::threadpool::ThreadPoolFactory;
 
 mod worker;
 mod threadpool;
 
 fn main() {
-    let pool = ThreadPool::new(4);
+    let pool = ThreadPoolFactory::new_fixed_sized(4);
 
     for i in 0..10 {
         pool.execute(move || {
