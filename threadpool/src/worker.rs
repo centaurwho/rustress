@@ -1,10 +1,12 @@
 use std::sync::{Arc, mpsc, Mutex};
 use std::thread;
-use threadpool::{Job, Message};
+
+use crate::{Job, Message};
 
 pub struct Worker {
     pub id: usize,
-    initial_job: Option<Job>, // TODO: Implement
+    initial_job: Option<Job>,
+    // TODO: Implement
     completed_jobs: u32,
     pub thread: Option<thread::JoinHandle<()>>,
 }

@@ -1,20 +1,22 @@
 use std::io::Write;
 use std::net::{IpAddr, SocketAddr, TcpStream};
 use std::str::FromStr;
+
 use serde_derive::Deserialize;
 
-
 #[derive(Debug, Deserialize)]
+#[serde(default)]
 pub struct ClientConfig {
     pub server_ip: String,
     pub server_port: u16,
+    // TODO: Add a constructor and check ip and port values in it
 }
 
-impl ClientConfig {
-    pub fn default() -> ClientConfig {
+impl Default for ClientConfig {
+    fn default() -> ClientConfig {
         ClientConfig {
             server_ip: String::from("127.0.0.1"),
-            server_port: 8080
+            server_port: 8080,
         }
     }
 }

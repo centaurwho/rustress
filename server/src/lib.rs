@@ -1,23 +1,19 @@
 use std::io::Read;
 use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
 use std::str::FromStr;
+
 use serde_derive::Deserialize;
 
+#[serde(default)]
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
     pub ip: String,
     pub port: u16,
-
-    #[serde(default = "default_thread_count")]
     pub thread_count: u8,
 }
 
-fn default_thread_count() -> u8 {
-    1
-}
-
-impl ServerConfig {
-    pub fn default() -> ServerConfig {
+impl Default for ServerConfig {
+    fn default() -> ServerConfig {
         ServerConfig {
             ip: String::from("127.0.0.1"),
             port: 8080,

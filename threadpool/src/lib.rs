@@ -1,3 +1,6 @@
+pub mod threadpool;
+mod worker;
+
 pub enum Message {
     NewJob(Job),
     Terminate,

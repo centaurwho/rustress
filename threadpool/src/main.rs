@@ -1,10 +1,7 @@
 use std::thread;
 use std::time::Duration;
 
-use crate::threadpool::ThreadPoolFactory;
-
-mod worker;
-mod threadpool;
+use threadpool::threadpool::ThreadPoolFactory;
 
 fn main() {
     let pool = ThreadPoolFactory::new_fixed_sized(4);
