@@ -5,9 +5,17 @@ use crate::Message;
 use crate::worker::Worker;
 
 pub struct ThreadPool {
+    pool_settings: PoolSettings,
+    state: State,
     workers: Vec<Worker>,
     sender: mpsc::Sender<Message>,
-    // TODO: capacity, completed_task_count, keep_alive_time
+}
+
+pub struct PoolSettings {
+    max_pool_count: usize,
+    completed_task_count: u64,
+    thread_fn: Option<ThreadProducer>,
+    keep_alive_time: Option<Duration>,
 }
 
 impl ThreadPool {
@@ -21,6 +29,7 @@ impl ThreadPool {
 impl Drop for ThreadPool {
     fn drop(&mut self) {
         println!("Sending terminate message to all workers");
+        self.state = advance_state(&self.state);
         for _ in &self.workers {
             self.sender.send(Message::Terminate).unwrap();
         }
@@ -32,6 +41,22 @@ impl Drop for ThreadPool {
                 thread.join().unwrap();
             }
         }
+    }
+}
+
+#[derive(Debug)]
+pub enum State {
+    // TODO: Decide all states and when to advance
+    Running(usize),
+    Cleaning,
+    Terminated,
+}
+
+fn advance_state(s: &State) -> State{
+    match s {
+        State::Running(_) => State::Cleaning,
+        State::Cleaning => State::Terminated,
+        State::Terminated => unreachable!()
     }
 }
 
@@ -49,8 +74,11 @@ impl ThreadPoolFactory {
             .build()
     }
 
-    pub fn new_cached() -> ThreadPool {
-        todo!()
+    pub fn new_cached(time: Duration) -> ThreadPool {
+        ThreadPoolBuilder::new()
+            .max_pool_size(usize::MAX)
+            .keep_alive_time(time)
+            .build()
     }
 
     pub fn new_scheduled() {
@@ -110,7 +138,16 @@ impl ThreadPoolBuilder {
             .map(|id| Worker::new(id, Arc::clone(&receiver)))
             .collect();
 
+        let pool_settings = PoolSettings {
+            max_pool_count: self.max_pool_size,
+            completed_task_count: 0,
+            thread_fn: self.thread_fn,
+            keep_alive_time: self.keep_alive_time,
+        };
+
         ThreadPool {
+            pool_settings,
+            state: State::Running(self.active_pool_size),
             workers,
             sender,
         }
