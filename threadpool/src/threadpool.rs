@@ -1,8 +1,12 @@
 use std::sync::{Arc, mpsc, Mutex};
 use std::time::Duration;
 
-use crate::Message;
+use crate::{Job, Message};
 use crate::worker::Worker;
+
+pub trait Executor<F> {
+    fn execute(&self, f: F);
+}
 
 pub struct ThreadPool {
     pool_settings: PoolSettings,
@@ -18,9 +22,11 @@ pub struct PoolSettings {
     keep_alive_time: Option<Duration>,
 }
 
-impl ThreadPool {
-    pub fn execute<F>(&self, f: F)
-        where F: FnOnce() + Send + 'static {
+
+impl<F> Executor<F> for ThreadPool
+    where F: FnOnce() + Send + 'static {
+
+    fn execute(&self, f: F) {
         let job = Message::NewJob(Box::new(f));
         self.sender.send(job).unwrap();
     }
@@ -52,7 +58,7 @@ pub enum State {
     Terminated,
 }
 
-fn advance_state(s: &State) -> State{
+fn advance_state(s: &State) -> State {
     match s {
         State::Running(_) => State::Cleaning,
         State::Cleaning => State::Terminated,
@@ -80,10 +86,6 @@ impl ThreadPoolFactory {
             .keep_alive_time(time)
             .build()
     }
-
-    pub fn new_scheduled() {
-        todo!()
-    }
 }
 
 // TODO: Raw function pointer vs Boxed trait object vs type parameter
@@ -94,6 +96,7 @@ struct ThreadPoolBuilder {
     active_pool_size: usize,
     keep_alive_time: Option<Duration>,
     thread_fn: Option<ThreadProducer>,
+    initial_job: Option<Job>,
 }
 
 impl ThreadPoolBuilder {
@@ -103,6 +106,7 @@ impl ThreadPoolBuilder {
             active_pool_size: 0,
             keep_alive_time: None,
             thread_fn: None,
+            initial_job: None
         }
     }
 
@@ -130,13 +134,31 @@ impl ThreadPoolBuilder {
         self
     }
 
+    fn initial_job(mut self, initial_job: Job) -> ThreadPoolBuilder {
+        self.initial_job = Some(initial_job);
+        self
+    }
+
     fn build(self) -> ThreadPool {
+        // TODO: Consider logic for multiple channels to reduce congestion
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
 
-        let workers = (0..self.active_pool_size)
-            .map(|id| Worker::new(id, Arc::clone(&receiver)))
+        // TODO: Sharing the same closure across multiple threads isn't a good idea probably. As long
+        //  as the closure doesn't capture from outer scope this shouldn't be a big deal here
+        //  Simplest solution would be just sending through the channel, but then only one worker can run the job
+        //  Consider implementing a custom Job object implementing Clone
+        //  Or make initial_job specific to workers
+        let initial_job = Arc::new(Mutex::new(self.initial_job));
+
+        let mut workers: Vec<Worker> = (0..self.active_pool_size)
+            .map(|id| Worker::new(id, Arc::clone(&receiver), Arc::clone(&initial_job)))
             .collect();
+
+        for worker in &workers {
+            // println!("{}", worker.id);
+            // worker.start()
+        }
 
         let pool_settings = PoolSettings {
             max_pool_count: self.max_pool_size,
