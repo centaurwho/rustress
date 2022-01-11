@@ -9,8 +9,10 @@ fn main() {
     for i in 0..10 {
         pool.execute(move || {
             println!("hoooo {}", i);
-        })
+        });
     }
 
     thread::sleep(Duration::from_secs(2));
+
+    println!("{}", pool.completed_task_count())
 }

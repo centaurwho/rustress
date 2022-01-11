@@ -6,20 +6,11 @@ use crate::{Job, Message};
 use crate::worker::Worker;
 
 pub struct ThreadPool {
-    pool_settings: PoolSettings,
+    max_pool_size: usize,
+    keep_alive_time: Option<Duration>,
     state: State,
     workers: Vec<Worker>,
     sender: mpsc::Sender<Message>,
-}
-
-pub struct PoolSettings {
-    // TODO: use this
-    max_pool_count: usize,
-    // TODO: Find a way for worker to notify thread_pool so we can update this after
-    //  every completed job
-    completed_task_count: u64,
-    // TODO: use this
-    keep_alive_time: Option<Duration>,
 }
 
 impl ThreadPool {
@@ -28,6 +19,13 @@ impl ThreadPool {
         let job = Message::NewJob(Box::new(f));
         // TODO: increment worker count here if needed
         self.sender.send(job).unwrap();
+    }
+
+    // Is just an estimate if there are working threads. Use with caution
+    pub fn completed_task_count(&self) -> u32 {
+        (&self.workers).iter()
+            .map(|w| w.completed_task_count())
+            .sum()
     }
 }
 
@@ -146,14 +144,9 @@ impl ThreadPoolBuilder {
             sender.send(Message::NewJob(job));
         }
 
-        let pool_settings = PoolSettings {
-            max_pool_count: self.max_pool_size,
-            completed_task_count: 0,
-            keep_alive_time: self.keep_alive_time,
-        };
-
         ThreadPool {
-            pool_settings,
+            max_pool_size: self.max_pool_size,
+            keep_alive_time: self.keep_alive_time,
             state: State::Running(self.active_pool_size),
             workers,
             sender,
