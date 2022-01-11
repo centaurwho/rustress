@@ -18,6 +18,7 @@ pub struct PoolSettings {
     //  every completed job
     completed_task_count: u64,
     thread_fn: Option<ThreadProducer>,
+    // TODO: use this
     keep_alive_time: Option<Duration>,
 }
 
@@ -25,6 +26,7 @@ impl ThreadPool {
     pub fn execute<F>(&self, f: F)
         where F: FnOnce() + Send + 'static {
         let job = Message::NewJob(Box::new(f));
+        // TODO: increment worker count here if needed
         self.sender.send(job).unwrap();
     }
 }
@@ -33,6 +35,7 @@ impl Drop for ThreadPool {
     fn drop(&mut self) {
         println!("Sending terminate message to all workers");
         self.state = advance_state(&self.state);
+
         for _ in &self.workers {
             self.sender.send(Message::Terminate).unwrap();
         }
@@ -82,10 +85,6 @@ impl ThreadPoolFactory {
             .max_pool_size(usize::MAX)
             .keep_alive_time(time)
             .build()
-    }
-
-    pub fn new_scheduled() {
-        todo!()
     }
 }
 
@@ -155,6 +154,7 @@ impl ThreadPoolBuilder {
             keep_alive_time: self.keep_alive_time,
         };
 
+        // TODO: Logic for initial job needed to run by all workers
         if let Some(job) = self.initial_job {
             sender.send(Message::NewJob(job));
         }
@@ -167,3 +167,5 @@ impl ThreadPoolBuilder {
         }
     }
 }
+
+// TODO: add tests
