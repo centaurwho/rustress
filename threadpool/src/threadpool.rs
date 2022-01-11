@@ -18,7 +18,6 @@ pub struct PoolSettings {
     // TODO: Find a way for worker to notify thread_pool so we can update this after
     //  every completed job
     completed_task_count: u64,
-    thread_builder: Option<thread::Builder>,
     // TODO: use this
     keep_alive_time: Option<Duration>,
 }
@@ -93,7 +92,6 @@ struct ThreadPoolBuilder {
     max_pool_size: usize,
     active_pool_size: usize,
     keep_alive_time: Option<Duration>,
-    thread_builder: Option<thread::Builder>,
     initial_job: Option<Job>,
 }
 
@@ -103,7 +101,6 @@ impl ThreadPoolBuilder {
             max_pool_size: 1,
             active_pool_size: 0,
             keep_alive_time: None,
-            thread_builder: None,
             initial_job: None,
         }
     }
@@ -124,11 +121,6 @@ impl ThreadPoolBuilder {
 
     fn keep_alive_time(mut self, time: Duration) -> ThreadPoolBuilder {
         self.keep_alive_time = Some(time);
-        self
-    }
-
-    fn thread_builder(mut self, thread_builder: thread::Builder) -> ThreadPoolBuilder {
-        self.thread_builder = Some(thread_builder);
         self
     }
 
@@ -157,7 +149,6 @@ impl ThreadPoolBuilder {
         let pool_settings = PoolSettings {
             max_pool_count: self.max_pool_size,
             completed_task_count: 0,
-            thread_builder: self.thread_builder,
             keep_alive_time: self.keep_alive_time,
         };
 
