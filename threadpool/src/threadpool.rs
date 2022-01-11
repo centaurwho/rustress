@@ -1,4 +1,5 @@
 use std::sync::{Arc, mpsc, Mutex};
+use std::thread;
 use std::time::Duration;
 
 use crate::{Job, Message};
@@ -17,7 +18,7 @@ pub struct PoolSettings {
     // TODO: Find a way for worker to notify thread_pool so we can update this after
     //  every completed job
     completed_task_count: u64,
-    thread_fn: Option<ThreadProducer>,
+    thread_builder: Option<thread::Builder>,
     // TODO: use this
     keep_alive_time: Option<Duration>,
 }
@@ -58,7 +59,7 @@ pub enum State {
     Terminated,
 }
 
-fn advance_state(s: &State) -> State{
+fn advance_state(s: &State) -> State {
     match s {
         State::Running(_) => State::Cleaning,
         State::Cleaning => State::Terminated,
@@ -88,14 +89,11 @@ impl ThreadPoolFactory {
     }
 }
 
-// TODO: Raw function pointer vs Boxed trait object vs type parameter
-type ThreadProducer = fn() -> std::thread::Thread;
-
 struct ThreadPoolBuilder {
     max_pool_size: usize,
     active_pool_size: usize,
     keep_alive_time: Option<Duration>,
-    thread_fn: Option<ThreadProducer>,
+    thread_builder: Option<thread::Builder>,
     initial_job: Option<Job>,
 }
 
@@ -105,7 +103,7 @@ impl ThreadPoolBuilder {
             max_pool_size: 1,
             active_pool_size: 0,
             keep_alive_time: None,
-            thread_fn: None,
+            thread_builder: None,
             initial_job: None,
         }
     }
@@ -129,8 +127,8 @@ impl ThreadPoolBuilder {
         self
     }
 
-    fn thread_fn(mut self, thread_fn: ThreadProducer) -> ThreadPoolBuilder {
-        self.thread_fn = Some(thread_fn);
+    fn thread_builder(mut self, thread_builder: thread::Builder) -> ThreadPoolBuilder {
+        self.thread_builder = Some(thread_builder);
         self
     }
 
@@ -143,21 +141,25 @@ impl ThreadPoolBuilder {
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
 
-        let workers = (0..self.active_pool_size)
+        let mut workers: Vec<Worker> = (0..self.active_pool_size)
             .map(|id| Worker::new(id, Arc::clone(&receiver)))
             .collect();
 
-        let pool_settings = PoolSettings {
-            max_pool_count: self.max_pool_size,
-            completed_task_count: 0,
-            thread_fn: self.thread_fn,
-            keep_alive_time: self.keep_alive_time,
-        };
+        for worker in workers.iter_mut() {
+            worker.start()
+        }
 
         // TODO: Logic for initial job needed to run by all workers
         if let Some(job) = self.initial_job {
             sender.send(Message::NewJob(job));
         }
+
+        let pool_settings = PoolSettings {
+            max_pool_count: self.max_pool_size,
+            completed_task_count: 0,
+            thread_builder: self.thread_builder,
+            keep_alive_time: self.keep_alive_time,
+        };
 
         ThreadPool {
             pool_settings,
