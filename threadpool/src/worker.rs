@@ -5,7 +5,6 @@ use crate::{Job, Message};
 
 pub struct Worker {
     pub id: usize,
-    initial_job: Option<Job>,
     // TODO: Implement
     completed_jobs: u32,
     pub thread: Option<thread::JoinHandle<()>>,
@@ -29,7 +28,6 @@ impl Worker {
 
         Worker {
             id,
-            initial_job: None,
             completed_jobs: 0,
             thread: Some(thread),
         }

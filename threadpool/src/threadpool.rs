@@ -1,7 +1,7 @@
 use std::sync::{Arc, mpsc, Mutex};
 use std::time::Duration;
 
-use crate::Message;
+use crate::{Job, Message};
 use crate::worker::Worker;
 
 pub struct ThreadPool {
@@ -12,7 +12,10 @@ pub struct ThreadPool {
 }
 
 pub struct PoolSettings {
+    // TODO: use this
     max_pool_count: usize,
+    // TODO: Find a way for worker to notify thread_pool so we can update this after
+    //  every completed job
     completed_task_count: u64,
     thread_fn: Option<ThreadProducer>,
     keep_alive_time: Option<Duration>,
@@ -94,6 +97,7 @@ struct ThreadPoolBuilder {
     active_pool_size: usize,
     keep_alive_time: Option<Duration>,
     thread_fn: Option<ThreadProducer>,
+    initial_job: Option<Job>,
 }
 
 impl ThreadPoolBuilder {
@@ -103,6 +107,7 @@ impl ThreadPoolBuilder {
             active_pool_size: 0,
             keep_alive_time: None,
             thread_fn: None,
+            initial_job: None,
         }
     }
 
@@ -130,6 +135,11 @@ impl ThreadPoolBuilder {
         self
     }
 
+    fn initial_job(mut self, initial_job: Job) -> ThreadPoolBuilder {
+        self.initial_job = Some(initial_job);
+        self
+    }
+
     fn build(self) -> ThreadPool {
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
@@ -144,6 +154,10 @@ impl ThreadPoolBuilder {
             thread_fn: self.thread_fn,
             keep_alive_time: self.keep_alive_time,
         };
+
+        if let Some(job) = self.initial_job {
+            sender.send(Message::NewJob(job));
+        }
 
         ThreadPool {
             pool_settings,
