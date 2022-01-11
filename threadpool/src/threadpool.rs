@@ -18,7 +18,7 @@ pub struct PoolSettings {
     // TODO: Find a way for worker to notify thread_pool so we can update this after
     //  every completed job
     completed_task_count: u64,
-    thread_builder: Option<thread::Builder>,
+    thread_builder: Arc<Mutex<thread::Builder>>,
     // TODO: use this
     keep_alive_time: Option<Duration>,
 }
@@ -141,8 +141,10 @@ impl ThreadPoolBuilder {
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
 
+        let thread_builder = Arc::new(Mutex::new(self.thread_builder.unwrap_or(thread::Builder::new())));
+
         let mut workers: Vec<Worker> = (0..self.active_pool_size)
-            .map(|id| Worker::new(id, Arc::clone(&receiver)))
+            .map(|id| Worker::new(id, Arc::clone(&receiver), Arc::clone(&thread_builder)))
             .collect();
 
         for worker in workers.iter_mut() {
@@ -157,7 +159,7 @@ impl ThreadPoolBuilder {
         let pool_settings = PoolSettings {
             max_pool_count: self.max_pool_size,
             completed_task_count: 0,
-            thread_builder: self.thread_builder,
+            thread_builder: Arc::clone(&thread_builder),
             keep_alive_time: self.keep_alive_time,
         };
 
