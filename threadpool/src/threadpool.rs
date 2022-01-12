@@ -1,5 +1,4 @@
 use std::sync::{Arc, mpsc, Mutex};
-use std::thread;
 use std::time::Duration;
 
 use crate::{Job, Message};
@@ -10,14 +9,30 @@ pub struct ThreadPool {
     keep_alive_time: Option<Duration>,
     state: State,
     workers: Vec<Worker>,
+
     sender: mpsc::Sender<Message>,
+    receiver: Arc<Mutex<mpsc::Receiver<Message>>>,
 }
 
 impl ThreadPool {
-    pub fn execute<F>(&self, f: F)
+    pub fn create_worker(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Worker {
+        Worker::new(id, receiver)
+    }
+
+    pub fn execute<F>(&mut self, f: F)
         where F: FnOnce() + Send + 'static {
         let job = Message::NewJob(Box::new(f));
-        // TODO: increment worker count here if needed
+
+        // Possible concurrency problems here. If execute is called multiple times in a short
+        // span of time, then self.no_available_worker() may not be changed quick enough. i.e After
+        // the first execute call, a worker is created. However, it does some bookkeeping before
+        // executing the task and switching to busy, so will seem available.
+        if self.max_pool_size > self.workers.len() && self.no_available_worker() {
+            let id = self.workers.len();
+            let mut new_worker = ThreadPool::create_worker(id, Arc::clone(&self.receiver));
+            new_worker.start();
+            self.workers.push(new_worker);
+        }
         self.sender.send(job).unwrap();
     }
 
@@ -26,6 +41,11 @@ impl ThreadPool {
         (&self.workers).iter()
             .map(|w| w.completed_task_count())
             .sum()
+    }
+
+    fn no_available_worker(&self) -> bool {
+        self.workers.is_empty() || (&self.workers).iter()
+            .all(|w| w.is_busy())
     }
 }
 
@@ -132,7 +152,7 @@ impl ThreadPoolBuilder {
         let receiver = Arc::new(Mutex::new(receiver));
 
         let mut workers: Vec<Worker> = (0..self.active_pool_size)
-            .map(|id| Worker::new(id, Arc::clone(&receiver)))
+            .map(|id| ThreadPool::create_worker(id, Arc::clone(&receiver)))
             .collect();
 
         for worker in workers.iter_mut() {
@@ -150,6 +170,7 @@ impl ThreadPoolBuilder {
             state: State::Running(self.active_pool_size),
             workers,
             sender,
+            receiver: receiver.clone(),
         }
     }
 }

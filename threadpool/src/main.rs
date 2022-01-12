@@ -1,18 +1,17 @@
 use std::thread;
 use std::time::Duration;
-
 use threadpool::threadpool::ThreadPoolFactory;
 
 fn main() {
-    let pool = ThreadPoolFactory::new_fixed_sized(4);
+    let mut pool = ThreadPoolFactory::new_cached(Duration::from_secs(10));
 
     for i in 0..10 {
+        thread::sleep(Duration::from_millis(1));
         pool.execute(move || {
             println!("hoooo {}", i);
+            thread::sleep(Duration::from_millis(4))
         });
     }
 
-    thread::sleep(Duration::from_secs(2));
-
-    println!("{}", pool.completed_task_count())
+    println!("{}", pool.completed_task_count());
 }

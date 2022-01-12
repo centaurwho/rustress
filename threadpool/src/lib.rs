@@ -2,7 +2,6 @@ pub mod threadpool;
 mod worker;
 
 pub enum Message {
-    // TODO: Other Message types: such as Message::Status, Message::ChangeConfig
     NewJob(Job),
     Terminate,
 }
