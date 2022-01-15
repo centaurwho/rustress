@@ -1,5 +1,4 @@
-pub mod threadpool;
-mod worker;
+pub mod pool;
 
 pub enum Message {
     NewJob(Job),

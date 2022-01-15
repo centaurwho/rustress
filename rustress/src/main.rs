@@ -1,6 +1,6 @@
 use std::thread;
 use std::time::Duration;
-use threadpool::threadpool::ThreadPoolFactory;
+use rustress::threadpool::pool::ThreadPoolFactory;
 
 fn main() {
     let mut pool = ThreadPoolFactory::new_cached(Duration::from_secs(10));

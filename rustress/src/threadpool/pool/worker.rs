@@ -2,7 +2,7 @@ use std::sync::{Arc, mpsc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::thread;
 
-use crate::Message;
+use crate::threadpool::Message;
 
 pub struct Worker {
     pub id: usize,

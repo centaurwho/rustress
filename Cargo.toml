@@ -1,9 +1,6 @@
 [workspace]
 members = [
-    "server",
-    "client",
-    "configparser",
+    "rustress",
     "test_client",
     "test_server",
-    "threadpool",
 ]

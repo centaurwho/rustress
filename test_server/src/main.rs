@@ -1,4 +1,4 @@
-use server::{ServerConfig, Server};
+use rustress::server::{Server, ServerConfig};
 
 fn main() {
     let server_config = ServerConfig::default();
