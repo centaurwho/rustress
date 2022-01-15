@@ -1,8 +1,10 @@
 use std::sync::{Arc, mpsc, Mutex};
 use std::time::Duration;
 
-use crate::{Job, Message};
-use crate::worker::Worker;
+use crate::threadpool::{Job, Message};
+use crate::threadpool::pool::worker::Worker;
+
+mod worker;
 
 pub struct ThreadPool {
     max_pool_size: usize,
