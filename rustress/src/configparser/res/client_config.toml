@@ -1,2 +1,13 @@
-server_ip = "8.8.8.4"
-server_port = 9000
+server_ip = "8.8.8.8"
+
+[flows.tcp_flow]
+name = "Connection 1"
+server_port = 8000
+protocol = "tcp"
+format = "json"
+
+[flows.udp_flow]
+name = "Connection 2"
+server_port = 8001
+protocol = "udp"
+format = "xml"

@@ -2,8 +2,8 @@ use std::{fs, io};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
-use serde_derive::Deserialize;
 
+use serde_derive::Deserialize;
 
 pub mod threadpool;
 pub mod server;
@@ -11,14 +11,14 @@ pub mod client;
 mod configparser;
 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkProt {
     Tcp,
     Udp,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum MsgFormat {
     Json,
