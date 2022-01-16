@@ -1,17 +1,10 @@
-use std::thread;
-use std::time::Duration;
-use rustress::threadpool::pool::ThreadPoolFactory;
+use rustress::load;
+
 
 fn main() {
-    let mut pool = ThreadPoolFactory::new_cached(Duration::from_secs(10));
+    let map = load(String::from("./rustress"));
 
-    for i in 0..10 {
-        thread::sleep(Duration::from_millis(1));
-        pool.execute(move || {
-            println!("hoooo {}", i);
-            thread::sleep(Duration::from_millis(4))
-        });
+    for (key, val) in map {
+        println!("{:?}: {:?}", key, val);
     }
-
-    println!("{}", pool.completed_task_count());
 }

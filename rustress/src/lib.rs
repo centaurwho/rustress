@@ -1,10 +1,6 @@
+use std::{fs, io};
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::{fs, io};
-use std::fmt::{Display, Formatter};
-use std::fs::FileType;
-use std::io::Error;
-use std::ops::Add;
 use std::path::PathBuf;
 
 pub mod threadpool;
@@ -12,44 +8,59 @@ pub mod server;
 pub mod client;
 mod configparser;
 
-#[derive(Debug)]
-pub enum PathContent {
-    FileContent(String),
-    FolderContent(HashMap<String, PathContent>),
+
+// There isn't an enum like this in the standard library. Since file type concept depends on OS
+//  rust decided to generalize the implementation. So FileType in std library only consists of a
+//  mode field containing necessary flags and uses it to extract the type
+enum FileType {
+    File,
+    Dir,
+    SymLink,
 }
 
-fn make_path(parent_path: String, child_path: String) -> PathBuf {
-    let mut path_buf = PathBuf::from(parent_path);
-    path_buf.push(child_path);
-    path_buf
-}
-
-// TODO: Cleanup
-pub fn load_content_from_folder(folder_path: String) -> io::Result<HashMap<String, PathContent>> {
-    let paths = fs::read_dir(folder_path.clone())?;
-    let mut file_content_by_name = HashMap::new();
-    for file_path in paths {
-        let file_name = file_path?.file_name().into_string().unwrap();
-        let full_path = make_path(folder_path.clone(), file_name.clone());
-        let file_meta = fs::metadata(&full_path)?;
-
-        if file_meta.is_file() {
-            match fs::read_to_string(&full_path) {
-                Ok(file_content) => {
-                    file_content_by_name.insert(String::from(full_path.to_str().unwrap()), PathContent::FileContent(String::new()));
-                }
-                Err(err) => {
-                    println!("Error {} during opening {:?}", err, file_name);
-                }
-            }
-        } else if file_meta.is_dir() {
-            let internal_map = load_content_from_folder(String::from(full_path.to_str().unwrap()))?;
-            file_content_by_name.insert(String::from(full_path.to_str().unwrap()), PathContent::FolderContent(internal_map));
+impl FileType {
+    fn from_meta(meta: fs::Metadata) -> FileType {
+        if meta.is_file() {
+            FileType::File
+        } else if meta.is_dir() {
+            FileType::Dir
         } else {
-            // file_meta.is_symlink is true
-            // TODO
-            unimplemented!("Can not handle symbolic links yet.")
+            FileType::SymLink
         }
     }
-    Ok(file_content_by_name)
+}
+
+
+pub fn load(path: String) -> HashMap<OsString, String> {
+    let path = PathBuf::from(path);
+    let mut content_map = HashMap::new();
+    load_into_map(&path, &mut content_map);
+    content_map
+}
+
+fn load_into_map(parent_path: &PathBuf, content_map: &mut HashMap<OsString, String>) -> io::Result<()> {
+    let files_in_current_dir = fs::read_dir(&parent_path)?;
+    for file_entry in files_in_current_dir {
+        let file_path = file_entry?.path();
+        let file_meta = fs::metadata(&file_path)?;
+        match FileType::from_meta(file_meta) {
+            FileType::File => {
+                match fs::read_to_string(&file_path) {
+                    Ok(file_content) => {
+                        content_map.insert(file_path.into_os_string(), file_content);
+                    }
+                    Err(err) => {
+                        println!("Error {} during opening {:?}", err, &file_path);
+                    }
+                }
+            }
+            FileType::Dir => {
+                load_into_map(&file_path, content_map);
+            }
+            FileType::SymLink => {
+                unimplemented!("Can not handle symbolic links yet");
+            }
+        }
+    }
+    Ok(())
 }
