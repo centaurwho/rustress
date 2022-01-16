@@ -31,11 +31,11 @@ impl FileType {
 }
 
 
-pub fn load(path: String) -> HashMap<OsString, String> {
+pub fn load(path: String) -> io::Result<HashMap<OsString, String>> {
     let path = PathBuf::from(path);
     let mut content_map = HashMap::new();
-    load_into_map(&path, &mut content_map);
-    content_map
+    load_into_map(&path, &mut content_map)?;
+    Ok(content_map)
 }
 
 fn load_into_map(parent_path: &PathBuf, content_map: &mut HashMap<OsString, String>) -> io::Result<()> {
@@ -55,7 +55,7 @@ fn load_into_map(parent_path: &PathBuf, content_map: &mut HashMap<OsString, Stri
                 }
             }
             FileType::Dir => {
-                load_into_map(&file_path, content_map);
+                load_into_map(&file_path, content_map)?;
             }
             FileType::SymLink => {
                 unimplemented!("Can not handle symbolic links yet");

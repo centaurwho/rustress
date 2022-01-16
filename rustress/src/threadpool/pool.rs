@@ -8,7 +8,11 @@ mod worker;
 
 pub struct ThreadPool {
     max_pool_size: usize,
+
+    // TODO: use this value. Then remove this macro
+    #[allow(unused)]
     keep_alive_time: Option<Duration>,
+
     state: State,
     workers: Vec<Worker>,
 
@@ -144,6 +148,8 @@ impl ThreadPoolBuilder {
         self
     }
 
+    // TODO: Add tests for this, then remove this macro
+    #[allow(unused)]
     fn initial_job(mut self, initial_job: Job) -> ThreadPoolBuilder {
         self.initial_job = Some(initial_job);
         self
@@ -163,7 +169,7 @@ impl ThreadPoolBuilder {
 
         // TODO: Logic for initial job needed to run by all workers
         if let Some(job) = self.initial_job {
-            sender.send(Message::NewJob(job));
+            sender.send(Message::NewJob(job)).unwrap();
         }
 
         ThreadPool {

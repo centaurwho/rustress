@@ -4,8 +4,8 @@ use std::str::FromStr;
 
 use serde_derive::Deserialize;
 
-#[serde(default)]
 #[derive(Debug, Deserialize)]
+#[serde(default)]
 pub struct ServerConfig {
     pub ip: String,
     pub port: u16,
