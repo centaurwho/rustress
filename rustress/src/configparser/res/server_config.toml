@@ -1,2 +1,7 @@
+# This is an example server config file
+
 ip = "8.8.8.8"
-port = 9000
+ports = [9990, 9991]
+accepted_protocols = ["tcp", "udp"]
+accepted_formats = ["json", "xml"]
+

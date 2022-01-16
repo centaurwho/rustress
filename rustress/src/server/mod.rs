@@ -3,21 +3,25 @@ use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
 use std::str::FromStr;
 
 use serde_derive::Deserialize;
+use crate::{MsgFormat, NetworkProt};
+
 
 #[derive(Debug, Deserialize)]
 #[serde(default)]
 pub struct ServerConfig {
     pub ip: String,
-    pub port: u16,
-    pub thread_count: u8,
+    pub ports: Vec<u16>,
+    pub accepted_protocols: Vec<NetworkProt>,
+    pub accepted_formats: Vec<MsgFormat>,
 }
 
 impl Default for ServerConfig {
     fn default() -> ServerConfig {
         ServerConfig {
             ip: String::from("127.0.0.1"),
-            port: 8080,
-            thread_count: 1,
+            ports: vec![8080, 8081],
+            accepted_protocols: Vec::new(),
+            accepted_formats: Vec::new(),
         }
     }
 }
@@ -37,10 +41,13 @@ impl Server {
     }
 
     pub fn run(&self) -> std::io::Result<()> {
-        let socket_addr = to_socket_addr(&self.config.ip, self.config.port);
-        let listener = TcpListener::bind(socket_addr)?;
-        for stream in listener.incoming() {
-            self.handle_client(stream?);
+        for port in &self.config.ports {
+            // TODO: spawn threads here
+            let socket_addr = to_socket_addr(&self.config.ip, *port);
+            let listener = TcpListener::bind(socket_addr)?;
+            for stream in listener.incoming() {
+                self.handle_client(stream?);
+            }
         }
         Ok(())
     }

@@ -2,11 +2,28 @@ use std::{fs, io};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
+use serde_derive::Deserialize;
+
 
 pub mod threadpool;
 pub mod server;
 pub mod client;
 mod configparser;
+
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NetworkProt {
+    Tcp,
+    Udp,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MsgFormat {
+    Json,
+    Xml,
+}
 
 
 // There isn't an enum like this in the standard library. Since file type concept depends on OS
