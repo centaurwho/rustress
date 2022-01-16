@@ -8,12 +8,10 @@ mod worker;
 
 pub struct ThreadPool {
     max_pool_size: usize,
-
     // TODO: use this value. Then remove this macro
     #[allow(unused)]
     keep_alive_time: Option<Duration>,
 
-    state: State,
     workers: Vec<Worker>,
 
     sender: mpsc::Sender<Message>,
@@ -58,8 +56,6 @@ impl ThreadPool {
 impl Drop for ThreadPool {
     fn drop(&mut self) {
         println!("Sending terminate message to all workers");
-        self.state = advance_state(&self.state);
-
         for _ in &self.workers {
             self.sender.send(Message::Terminate).unwrap();
         }
@@ -71,22 +67,6 @@ impl Drop for ThreadPool {
                 thread.join().unwrap();
             }
         }
-    }
-}
-
-#[derive(Debug)]
-pub enum State {
-    // TODO: Decide all states and when to advance
-    Running(usize),
-    Cleaning,
-    Terminated,
-}
-
-fn advance_state(s: &State) -> State {
-    match s {
-        State::Running(_) => State::Cleaning,
-        State::Cleaning => State::Terminated,
-        State::Terminated => unreachable!()
     }
 }
 
@@ -175,7 +155,6 @@ impl ThreadPoolBuilder {
         ThreadPool {
             max_pool_size: self.max_pool_size,
             keep_alive_time: self.keep_alive_time,
-            state: State::Running(self.active_pool_size),
             workers,
             sender,
             receiver: receiver.clone(),
