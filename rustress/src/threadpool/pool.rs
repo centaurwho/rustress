@@ -92,7 +92,7 @@ impl ThreadPoolFactory {
     }
 }
 
-struct ThreadPoolBuilder {
+pub struct ThreadPoolBuilder {
     max_pool_size: usize,
     active_pool_size: usize,
     keep_alive_time: Option<Duration>,
@@ -100,7 +100,7 @@ struct ThreadPoolBuilder {
 }
 
 impl ThreadPoolBuilder {
-    fn new() -> ThreadPoolBuilder {
+    pub fn new() -> ThreadPoolBuilder {
         ThreadPoolBuilder {
             max_pool_size: 1,
             active_pool_size: 0,
@@ -109,33 +109,33 @@ impl ThreadPoolBuilder {
         }
     }
 
-    fn max_pool_size(mut self, n: usize) -> ThreadPoolBuilder {
+    pub fn max_pool_size(mut self, n: usize) -> ThreadPoolBuilder {
         assert!(n > 0);
         assert!(n >= self.active_pool_size);
         self.max_pool_size = n;
         self
     }
 
-    fn active_pool_size(mut self, n: usize) -> ThreadPoolBuilder {
+    pub fn active_pool_size(mut self, n: usize) -> ThreadPoolBuilder {
         assert!(n > 0);
         assert!(n <= self.max_pool_size);
         self.active_pool_size = n;
         self
     }
 
-    fn keep_alive_time(mut self, time: Duration) -> ThreadPoolBuilder {
+    pub fn keep_alive_time(mut self, time: Duration) -> ThreadPoolBuilder {
         self.keep_alive_time = Some(time);
         self
     }
 
     // TODO: Add tests for this, then remove this macro
     #[allow(unused)]
-    fn initial_job(mut self, initial_job: Job) -> ThreadPoolBuilder {
+    pub fn initial_job(mut self, initial_job: Job) -> ThreadPoolBuilder {
         self.initial_job = Some(initial_job);
         self
     }
 
-    fn build(self) -> ThreadPool {
+    pub fn build(self) -> ThreadPool {
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
 
