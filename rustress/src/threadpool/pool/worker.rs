@@ -28,8 +28,7 @@ impl Worker {
     }
 
     pub fn is_busy(&self) -> bool {
-        let x = self.busy.load(Ordering::Relaxed);
-        x
+        self.busy.load(Ordering::Relaxed)
     }
 
     pub fn start(&mut self) {
