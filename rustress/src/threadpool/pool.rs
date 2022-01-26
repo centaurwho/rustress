@@ -1,5 +1,4 @@
 use std::sync::{Arc, mpsc, Mutex};
-use std::time::Duration;
 
 use crate::threadpool::{Job, Message};
 use crate::threadpool::pool::worker::Worker;
@@ -8,9 +7,6 @@ mod worker;
 
 pub struct ThreadPool {
     max_pool_size: usize,
-    // TODO: use this value. Then remove this macro
-    #[allow(unused)]
-    keep_alive_time: Option<Duration>,
 
     workers: Vec<Worker>,
 
@@ -84,10 +80,9 @@ impl ThreadPoolFactory {
             .build()
     }
 
-    pub fn new_cached(time: Duration) -> ThreadPool {
+    pub fn new_lazy() -> ThreadPool {
         ThreadPoolBuilder::new()
             .max_pool_size(usize::MAX)
-            .keep_alive_time(time)
             .build()
     }
 }
@@ -95,7 +90,6 @@ impl ThreadPoolFactory {
 pub struct ThreadPoolBuilder {
     max_pool_size: usize,
     active_pool_size: usize,
-    keep_alive_time: Option<Duration>,
     initial_job: Option<Job>,
 }
 
@@ -104,7 +98,6 @@ impl ThreadPoolBuilder {
         ThreadPoolBuilder {
             max_pool_size: 1,
             active_pool_size: 0,
-            keep_alive_time: None,
             initial_job: None,
         }
     }
@@ -120,11 +113,6 @@ impl ThreadPoolBuilder {
         assert!(n > 0);
         assert!(n <= self.max_pool_size);
         self.active_pool_size = n;
-        self
-    }
-
-    pub fn keep_alive_time(mut self, time: Duration) -> ThreadPoolBuilder {
-        self.keep_alive_time = Some(time);
         self
     }
 
@@ -154,7 +142,6 @@ impl ThreadPoolBuilder {
 
         ThreadPool {
             max_pool_size: self.max_pool_size,
-            keep_alive_time: self.keep_alive_time,
             workers,
             sender,
             receiver: receiver.clone(),
