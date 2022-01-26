@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use serde_derive::Deserialize;
 use crate::{MsgFormat, NetworkProt};
+use crate::threadpool::pool::{ThreadPool, ThreadPoolBuilder, ThreadPoolFactory};
 
 
 #[derive(Debug, Deserialize)]
@@ -28,6 +29,7 @@ impl Default for ServerConfig {
 
 pub struct Server {
     config: ServerConfig,
+    pool: ThreadPool,
 }
 
 fn to_socket_addr(ip: &str, port: u16) -> SocketAddr {
@@ -37,21 +39,32 @@ fn to_socket_addr(ip: &str, port: u16) -> SocketAddr {
 
 impl Server {
     pub fn new(config: ServerConfig) -> Server {
-        Server { config }
+        let pool = ThreadPoolFactory::new_fixed_sized(config.ports.len());
+
+        Server {
+            config,
+            pool
+        }
     }
 
-    pub fn run(&self) -> std::io::Result<()> {
+    pub fn run(&mut self) -> std::io::Result<()> {
         for port in &self.config.ports {
-            // TODO: spawn threads here
+            let client_handler = CLientHandler { };
             let socket_addr = to_socket_addr(&self.config.ip, *port);
-            let listener = TcpListener::bind(socket_addr)?;
-            for stream in listener.incoming() {
-                self.handle_client(stream?);
-            }
+            self.pool.execute(move || {
+                let listener = TcpListener::bind(socket_addr).unwrap();
+                for stream in listener.incoming() {
+                    client_handler.handle_client(stream.unwrap());
+                }
+            })
         }
         Ok(())
     }
+}
 
+struct CLientHandler;
+
+impl CLientHandler {
     fn handle_client(&self, mut stream: TcpStream) {
         let mut buffer = [0 as u8; 100];
         match stream.read(&mut buffer) {
