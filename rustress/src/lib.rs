@@ -1,15 +1,14 @@
-use std::{fs, io};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::{fs, io};
 
 use serde_derive::Deserialize;
 
-pub mod threadpool;
-pub mod server;
 pub mod client;
 mod configparser;
-
+pub mod server;
+pub mod threadpool;
 
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -24,7 +23,6 @@ pub enum MsgFormat {
     Json,
     Xml,
 }
-
 
 // There isn't an enum like this in the standard library. Since file type concept depends on OS
 //  rust decided to generalize the implementation. So FileType in std library only consists of a
@@ -47,7 +45,6 @@ impl FileType {
     }
 }
 
-
 pub fn load(path: String) -> io::Result<HashMap<OsString, String>> {
     let path = PathBuf::from(path);
     let mut content_map = HashMap::new();
@@ -55,22 +52,23 @@ pub fn load(path: String) -> io::Result<HashMap<OsString, String>> {
     Ok(content_map)
 }
 
-fn load_into_map(parent_path: &PathBuf, content_map: &mut HashMap<OsString, String>) -> io::Result<()> {
-    let files_in_current_dir = fs::read_dir(&parent_path)?;
+fn load_into_map(
+    parent_path: &PathBuf,
+    content_map: &mut HashMap<OsString, String>,
+) -> io::Result<()> {
+    let files_in_current_dir = fs::read_dir(parent_path)?;
     for file_entry in files_in_current_dir {
         let file_path = file_entry?.path();
         let file_meta = fs::metadata(&file_path)?;
         match FileType::from_meta(file_meta) {
-            FileType::File => {
-                match fs::read_to_string(&file_path) {
-                    Ok(file_content) => {
-                        content_map.insert(file_path.into_os_string(), file_content);
-                    }
-                    Err(err) => {
-                        println!("Error {} during opening {:?}", err, &file_path);
-                    }
+            FileType::File => match fs::read_to_string(&file_path) {
+                Ok(file_content) => {
+                    content_map.insert(file_path.into_os_string(), file_content);
                 }
-            }
+                Err(err) => {
+                    println!("Error {} during opening {:?}", err, &file_path);
+                }
+            },
             FileType::Dir => {
                 load_into_map(&file_path, content_map)?;
             }

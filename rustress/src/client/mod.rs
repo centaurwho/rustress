@@ -1,11 +1,10 @@
+use serde_derive::Deserialize;
 use std::collections::HashMap;
 use std::io::Write;
 use std::net::{IpAddr, SocketAddr, TcpStream};
 use std::str::FromStr;
-use serde_derive::Deserialize;
 
 use crate::{MsgFormat, NetworkProt};
-use crate::NetworkProt::Tcp;
 
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 #[serde(default)]
@@ -32,7 +31,6 @@ impl Default for Flow {
 pub struct ClientConfig {
     pub server_ip: String,
     pub flows: HashMap<String, Flow>,
-
     // TODO: Add a constructor and check ip and port values in it
 }
 
@@ -56,19 +54,17 @@ pub struct Client {
 
 impl Client {
     pub fn new(config: ClientConfig) -> Client {
-        Client {
-            config
-        }
+        Client { config }
     }
 
     pub fn run(&self) {
-        for (_, flow) in &self.config.flows {
+        for flow in self.config.flows.values() {
             let socket_addr = to_socket_addr(&self.config.server_ip, flow.server_port);
             match TcpStream::connect(socket_addr) {
                 Ok(mut stream) => {
                     println!("Connected to server: {}", socket_addr);
                     let msg = b"Hako";
-                    stream.write(msg).unwrap();
+                    stream.write_all(msg).unwrap();
                 }
                 Err(e) => {
                     println!("Failed to connect: {}", e);

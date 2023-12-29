@@ -2,10 +2,9 @@ use std::io::Read;
 use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
 use std::str::FromStr;
 
-use serde_derive::Deserialize;
+use crate::threadpool::pool::{ThreadPool, ThreadPoolFactory};
 use crate::{MsgFormat, NetworkProt};
-use crate::threadpool::pool::{ThreadPool, ThreadPoolBuilder, ThreadPoolFactory};
-
+use serde_derive::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(default)]
@@ -41,15 +40,12 @@ impl Server {
     pub fn new(config: ServerConfig) -> Server {
         let pool = ThreadPoolFactory::new_fixed_sized(config.ports.len());
 
-        Server {
-            config,
-            pool
-        }
+        Server { config, pool }
     }
 
     pub fn run(&mut self) -> std::io::Result<()> {
         for port in &self.config.ports {
-            let client_handler = CLientHandler { };
+            let client_handler = ClientHandler {};
             let socket_addr = to_socket_addr(&self.config.ip, *port);
             self.pool.execute(move || {
                 let listener = TcpListener::bind(socket_addr).unwrap();
@@ -62,22 +58,20 @@ impl Server {
     }
 }
 
-struct CLientHandler;
+struct ClientHandler;
 
-impl CLientHandler {
+impl ClientHandler {
     fn handle_client(&self, mut stream: TcpStream) {
-        let mut buffer = [0 as u8; 100];
+        let mut buffer = [0u8; 100];
         match stream.read(&mut buffer) {
-            Ok(size) => {
-                match std::str::from_utf8(&buffer[0..size]) {
-                    Ok(val) => {
-                        println!("Read {}", val);
-                    }
-                    Err(e) => {
-                        println!("Error during converting to string: {}", e)
-                    }
+            Ok(size) => match std::str::from_utf8(&buffer[0..size]) {
+                Ok(val) => {
+                    println!("Read {}", val);
                 }
-            }
+                Err(e) => {
+                    println!("Error during converting to string: {}", e)
+                }
+            },
             Err(e) => {
                 println!("Error during reading to buffer: {}", e)
             }

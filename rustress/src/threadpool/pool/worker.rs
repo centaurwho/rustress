@@ -1,5 +1,5 @@
-use std::sync::{Arc, mpsc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
 use crate::threadpool::Message;
@@ -53,7 +53,11 @@ impl Worker {
                         job_count.fetch_add(1, Ordering::Relaxed);
                     }
                     Message::Terminate => {
-                        println!("Worker {} got terminate message. Total completed task count: {}", id, job_count.load(Ordering::Relaxed));
+                        println!(
+                            "Worker {} got terminate message. Total completed task count: {}",
+                            id,
+                            job_count.load(Ordering::Relaxed)
+                        );
                         break;
                     }
                 }

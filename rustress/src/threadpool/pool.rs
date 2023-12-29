@@ -1,7 +1,7 @@
-use std::sync::{Arc, mpsc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 
-use crate::threadpool::{Job, Message};
 use crate::threadpool::pool::worker::Worker;
+use crate::threadpool::{Job, Message};
 
 mod worker;
 
@@ -20,7 +20,9 @@ impl ThreadPool {
     }
 
     pub fn execute<F>(&mut self, f: F)
-        where F: FnOnce() + Send + 'static {
+    where
+        F: FnOnce() + Send + 'static,
+    {
         let job = Message::NewJob(Box::new(f));
 
         // Possible concurrency problems here. If execute is called multiple times in a short
@@ -38,14 +40,11 @@ impl ThreadPool {
 
     // Is just an estimate if there are working threads. Use with caution
     pub fn completed_task_count(&self) -> u32 {
-        (&self.workers).iter()
-            .map(|w| w.completed_task_count())
-            .sum()
+        self.workers.iter().map(|w| w.completed_task_count()).sum()
     }
 
     fn no_available_worker(&self) -> bool {
-        self.workers.is_empty() || (&self.workers).iter()
-            .all(|w| w.is_busy())
+        self.workers.is_empty() || self.workers.iter().all(|w| w.is_busy())
     }
 }
 
@@ -81,9 +80,7 @@ impl ThreadPoolFactory {
     }
 
     pub fn new_lazy() -> ThreadPool {
-        ThreadPoolBuilder::new()
-            .max_pool_size(usize::MAX)
-            .build()
+        ThreadPoolBuilder::new().max_pool_size(usize::MAX).build()
     }
 }
 
@@ -91,6 +88,12 @@ pub struct ThreadPoolBuilder {
     max_pool_size: usize,
     active_pool_size: usize,
     initial_job: Option<Job>,
+}
+
+impl Default for ThreadPoolBuilder {
+    fn default() -> Self {
+        ThreadPoolBuilder::new()
+    }
 }
 
 impl ThreadPoolBuilder {

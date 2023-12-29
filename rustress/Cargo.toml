@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-toml = "0.5.8"
-serde = "1.0.133"
-serde_derive = "1.0.133"
+toml = "0.8.8"
+serde = "1.0.193"
+serde_derive = "1.0.193"
